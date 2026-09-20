@@ -134,10 +134,11 @@ export const createMockServer = async ({
   const { proxies, providers, nodeNames, activeConnections } = fixture
 
   /*
-   * 两个可在运行时改的开关,verify 会用到:
+   * 几个可在运行时改的开关,verify 会用到:
    * - stableLatency:关掉「每次拉 /proxies 都换一批延迟」,这样测速时新写进去的值才好辨认;
    * - latencyDelayMs:让单节点测速慢一点,才采得到「乐观写入」的中间态;
-   * - latencyError:让测速端点返回一个带错误信息的失败响应。
+   * - latencyError:让测速端点返回一个带错误信息的失败响应;
+   * - lastLatencyUrl:记录最近一次测速使用的 url,用于验证 DIRECT 专用路径。
    */
   const control = {
     stableLatency: false,
@@ -145,6 +146,7 @@ export const createMockServer = async ({
     latencyValue: 999,
     latencyError: '',
     latencyErrorStatus: 504,
+    lastLatencyUrl: '',
   }
   let fetchCount = 0
 
@@ -242,6 +244,8 @@ export const createMockServer = async ({
 
     // 测速类端点(节点 / 组 / provider healthcheck)
     if (pathname.endsWith('/delay') || pathname.includes('/healthcheck')) {
+      control.lastLatencyUrl = new URL(req.url, 'http://localhost').searchParams.get('url') ?? ''
+
       return setTimeout(() => {
         if (control.latencyError) {
           return json(res, { message: control.latencyError }, control.latencyErrorStatus)

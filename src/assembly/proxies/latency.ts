@@ -1,5 +1,11 @@
 import { driver } from '@/assembly/driver'
-import { IPV6_TEST_URL, NOT_CONNECTED, PROXY_TYPE, SPEEDTEST_MODE } from '@/constant'
+import {
+  DIRECT_TEST_URL,
+  IPV6_TEST_URL,
+  NOT_CONNECTED,
+  PROXY_TYPE,
+  SPEEDTEST_MODE,
+} from '@/constant'
 import { isProxyGroup } from '@/helper'
 import { showNotification } from '@/helper/notification'
 import { getRequestErrorMessage, notifyRequestError } from '@/helper/request-error'
@@ -21,6 +27,13 @@ import {
 } from './state'
 
 const testNodeLatency = (proxyName: string, url: string, timeout: number) => {
+  if (
+    proxyName.toUpperCase() === 'DIRECT' ||
+    proxyMap.value[proxyName]?.type?.toLowerCase() === PROXY_TYPE.Direct
+  ) {
+    return driver().proxies.testNode(proxyName, url, timeout)
+  }
+
   const providerName = getProviderNameByProxy(proxyName)
 
   if (providerName) {
@@ -41,7 +54,14 @@ const latencyTestForSingle = async (proxyName: string, url: string, timeout: num
     }
   }
 
-  return await testNodeLatency(independentLatencyTest.value ? proxyName : now, url, timeout)
+  const testProxyName = independentLatencyTest.value ? proxyName : now
+  const testUrl =
+    testProxyName.toUpperCase() === 'DIRECT' ||
+    proxyMap.value[testProxyName]?.type?.toLowerCase() === PROXY_TYPE.Direct
+      ? DIRECT_TEST_URL
+      : url
+
+  return await testNodeLatency(testProxyName, testUrl, timeout)
 }
 
 const getNameForNotification = (name: string, url: string) => {

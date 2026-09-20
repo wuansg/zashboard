@@ -12,6 +12,8 @@ export const IS_APPLE_DEVICE = /Mac|iPod|iPhone|iPad/.test(navigator.platform)
 
 export const GLOBAL = 'GLOBAL'
 export const TEST_URL = 'https://www.gstatic.com/generate_204'
+// DIRECT 节点使用无 TLS、仅 IPv4 的连通性探测,避开直连路径上的 IPv6/TLS 超时。
+export const DIRECT_TEST_URL = 'http://connectivitycheck.gstatic.com/generate_204'
 export const IPV6_TEST_URL = 'https://ipv6.google.com/generate_204'
 export const NOT_CONNECTED = 0
 export enum LANG {

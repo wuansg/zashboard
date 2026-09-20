@@ -435,6 +435,50 @@ try {
     `节点 ${standardNodeBefore} → ${standardNodeAfterFirstTest} → ${await standardNodeName()}，测速 ${await standardNodeLatency()}，记录 ${standardHistoryCount} 条`,
   )
 
+  await standardPage.evaluate(`(() => {
+    const group = document.querySelector('[data-group-name="${SELECTOR_GROUP}"]')
+    const scroller = group?.querySelector('.proxies-scrollable-parent')
+
+    if (scroller) {
+      scroller.scrollTop = scroller.scrollHeight
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    }
+  })()`)
+  await sleep(800)
+  await harness.setMockControl({ latencyValue: 321, latencyError: '' })
+  const directNodeClicked = await standardPage.evaluate(`(() => {
+    const group = document.querySelector('[data-group-name="${SELECTOR_GROUP}"]')
+    const tag = [...(group?.querySelectorAll('.proxies-scrollable-parent .latency-tag') ?? [])]
+      .find((element) => element.parentElement?.parentElement?.textContent?.includes('DIRECT'))
+
+    tag?.click()
+    return Boolean(tag)
+  })()`)
+  const directLatencyUrlTested = await waitFor(
+    async () =>
+      directNodeClicked &&
+      (await harness.setMockControl({})).lastLatencyUrl ===
+        'http://connectivitycheck.gstatic.com/generate_204',
+    { timeout: 5000, interval: 100 },
+  )
+
+  check(
+    'DIRECT 节点使用专用直连测速地址',
+    directLatencyUrlTested !== null,
+    `测速地址 ${(await harness.setMockControl({})).lastLatencyUrl || '未发起'}`,
+  )
+
+  await standardPage.evaluate(`(() => {
+    const scroller = document
+      .querySelector('[data-group-name="${SELECTOR_GROUP}"]')
+      ?.querySelector('.proxies-scrollable-parent')
+
+    if (scroller) {
+      scroller.scrollTop = 0
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    }
+  })()`)
+  await sleep(800)
   await harness.setMockControl({ latencyError: 'context deadline exceeded' })
   await standardPage.clickSelector(standardNodeLatencySelector)
   const detailedLatencyError = await waitFor(
