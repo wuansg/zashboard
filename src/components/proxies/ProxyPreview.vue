@@ -8,14 +8,14 @@
       <div
         v-for="node in nodesLatency"
         :key="node.name"
-        class="flex size-3 items-center justify-center rounded-sm transition hover:scale-110"
+        class="flex size-3 items-center justify-center rounded-full transition hover:scale-110"
         :class="getBgColor(node.latency)"
         ref="dotsRef"
         @mouseenter="(e) => makeTippy(e, node)"
         @click.stop="$emit('nodeclick', node.name)"
       >
         <div
-          class="size-[5px] rounded-[2px] bg-white"
+          class="size-[5px] rounded-full bg-white"
           v-if="now === node.name"
         ></div>
       </div>
