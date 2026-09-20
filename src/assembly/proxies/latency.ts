@@ -1,4 +1,3 @@
-import { can } from '@/assembly/backend'
 import { driver } from '@/assembly/driver'
 import { IPV6_TEST_URL, NOT_CONNECTED, PROXY_TYPE, SPEEDTEST_MODE } from '@/constant'
 import { isProxyGroup } from '@/helper'
@@ -79,7 +78,7 @@ export const proxyLatencyTest = async (
     await fetchProxies()
   }
 
-  if (groupName && independentLatencyTest.value && can('independentLatency')) {
+  if (groupName) {
     setHistory(proxyName, delay, groupName)
   }
 

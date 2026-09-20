@@ -367,6 +367,76 @@ try {
 
   await independentPage.close()
 
+  await harness.setMockControl({ latencyValue: 777 })
+  const standardPage = await harness.openProxiesPage({
+    settings: {
+      'config/independent-latency-test': false,
+      'cache/collapse-group-map': '{}',
+    },
+  })
+  await standardPage.waitForCards(1)
+  await standardPage.clickSelector(
+    `[data-group-name="${SELECTOR_GROUP}"] .collapse-motion-header`,
+    { dx: 60, dy: 12 },
+  )
+  await sleep(1000)
+
+  const standardNodeLatency = () =>
+    standardPage.evaluate(
+      `(document.querySelector('[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag')?.innerText ?? '').trim()`,
+    )
+  const standardNodeLatencySelector = `[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag`
+  const standardNodeName = () =>
+    standardPage.evaluate(
+      `document.querySelector(${JSON.stringify(standardNodeLatencySelector)})?.parentElement?.parentElement?.firstElementChild?.textContent?.trim() ?? ''`,
+    )
+
+  await standardPage.clickSelector(standardNodeLatencySelector)
+  const standardNodeBefore = await standardNodeName()
+  const standardNodeTested = await waitFor(async () => (await standardNodeLatency()) === '777', {
+    timeout: 20000,
+    interval: 200,
+  })
+  const standardNodeAfterFirstTest = await standardNodeName()
+
+  await harness.setMockControl({ latencyValue: 666 })
+  await standardPage.clickSelector(standardNodeLatencySelector)
+  const repeatedStandardNodeTested = await waitFor(
+    async () => (await standardNodeLatency()) === '666',
+    { timeout: 20000, interval: 200 },
+  )
+
+  await standardPage.call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1 })
+  await sleep(200)
+  const standardLatencyBox = await standardPage.boxOf(standardNodeLatencySelector)
+  await standardPage.call('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: standardLatencyBox.x,
+    y: standardLatencyBox.y,
+  })
+
+  const standardHistoryReady = await waitFor(
+    async () =>
+      (await standardPage.evaluate(
+        `document.querySelector('.tippy-content > div')?.children.length ?? 0`,
+      )) >= 2,
+    { timeout: 5000, interval: 100 },
+  )
+  const standardHistoryCount = await standardPage.evaluate(
+    `document.querySelector('.tippy-content > div')?.children.length ?? 0`,
+  )
+
+  check(
+    '普通模式下重复单节点测速会保留延迟记录',
+    standardNodeTested !== null &&
+      repeatedStandardNodeTested !== null &&
+      standardHistoryReady !== null &&
+      standardHistoryCount >= 2,
+    `节点 ${standardNodeBefore} → ${standardNodeAfterFirstTest} → ${await standardNodeName()}，测速 ${await standardNodeLatency()}，记录 ${standardHistoryCount} 条`,
+  )
+
+  await standardPage.close()
+
   section('自动滚动规则')
 
   // 让激活节点落在列表末尾,并给各节点恢复递增延迟；窄屏下展开时必须瞬时定位到底部。

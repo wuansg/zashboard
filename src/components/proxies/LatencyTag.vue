@@ -4,7 +4,8 @@
       'latency-tag bg-base-100 h-5 w-10 rounded-xl text-xs select-none md:hover:shadow-sm',
       color,
     ]"
-    @mouseenter="handlerHistoryTip"
+    @mouseenter="handlerHistoryEnter"
+    @mouseleave="handlerHistoryLeave"
   >
     <Transition name="latency-state">
       <span
@@ -36,12 +37,26 @@ import { CountUp } from 'countup.js'
 import dayjs from 'dayjs'
 import { computed, onUnmounted, ref, watch } from 'vue'
 
-const { showTip } = useTooltip()
-const handlerHistoryTip = (e: Event) => {
+const { showTip, updateTip } = useTooltip()
+const isHistoryHovered = ref(false)
+
+const props = defineProps<{
+  name?: string
+  loading?: boolean
+  groupName?: string
+}>()
+
+const latencyRef = ref<HTMLElement | null>(null)
+const latency = computed(() => getLatencyByName(props.name ?? '', props.groupName))
+
+const historySnapshot = computed(() =>
+  getHistoryByName(props.name ?? '', props.groupName)
+    .map((item) => `${item.time}\u0000${item.delay}`)
+    .join('|'),
+)
+
+const createHistoryContent = () => {
   const history = getHistoryByName(props.name ?? '', props.groupName)
-
-  if (!history.length) return
-
   const historyList = document.createElement('div')
 
   historyList.classList.add('flex', 'flex-col', 'gap-1')
@@ -59,20 +74,35 @@ const handlerHistoryTip = (e: Event) => {
     historyList.append(itemDiv)
   }
 
-  showTip(e, historyList, {
-    delay: [1000, 0],
-    trigger: 'mouseenter',
-    touch: false,
-  })
+  return historyList
 }
 
-const props = defineProps<{
-  name?: string
-  loading?: boolean
-  groupName?: string
-}>()
-const latencyRef = ref<HTMLElement | null>(null)
-const latency = computed(() => getLatencyByName(props.name ?? '', props.groupName))
+const historyTipConfig = {
+  delay: [1000, 0] as [number, number],
+  trigger: 'mouseenter' as const,
+  touch: false,
+}
+
+const handlerHistoryTip = (e: Event) => {
+  if (!getHistoryByName(props.name ?? '', props.groupName).length) return
+
+  showTip(e, createHistoryContent(), historyTipConfig)
+}
+
+const handlerHistoryEnter = (e: Event) => {
+  isHistoryHovered.value = true
+  handlerHistoryTip(e)
+}
+
+const handlerHistoryLeave = () => {
+  isHistoryHovered.value = false
+}
+
+watch(historySnapshot, () => {
+  if (!isHistoryHovered.value || !historySnapshot.value) return
+
+  updateTip(createHistoryContent())
+})
 let countUp: CountUp | null = null
 let shownLatency = latency.value
 
