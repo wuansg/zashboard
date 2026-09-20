@@ -29,7 +29,7 @@ export const fetchConfigs = async () => {
 
 export const updateConfigs = async (cfg: Record<string, string | boolean | object | number>) => {
   await driver().config.patch(cfg)
-  fetchConfigs()
+  await fetchConfigs()
 }
 
 export const reloadConfigs = () => driver().config.reload()

@@ -67,6 +67,11 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         section: 'settingsSectionCoreOperations',
       },
       {
+        key: `${SETTINGS_MENU_KEY.backend}.updateSubscriptions`,
+        label: 'updateSubscriptions',
+        section: 'settingsSectionCoreOperations',
+      },
+      {
         key: `${SETTINGS_MENU_KEY.backend}.updateGeoDatabase`,
         label: 'updateGeoDatabase',
         section: 'settingsSectionCoreOperations',

@@ -54,10 +54,9 @@
 </template>
 
 <script setup lang="ts">
-import { loadConfigs } from '@/assembly/config'
+import { fetchConfigs, loadConfigs, reloadConfigs } from '@/assembly/config'
 import { notifyActionPending, showNotification } from '@/helper/notification'
 import { notifyRequestError } from '@/helper/request-error'
-import { fetchConfigs } from '@/assembly/config'
 import { fetchProxies } from '@/assembly/proxies'
 import { fetchRules } from '@/assembly/rules'
 import { onMounted, ref } from 'vue'
@@ -75,11 +74,7 @@ const configPayload = ref('')
 const forceUpdate = ref(false)
 const isUpdating = ref(false)
 
-const reloadAll = () => {
-  fetchConfigs()
-  fetchRules()
-  fetchProxies()
-}
+const reloadAll = () => Promise.all([fetchConfigs(), fetchRules(), fetchProxies()])
 
 const handleUpdateConfigs = async () => {
   if (isUpdating.value) return
@@ -87,7 +82,8 @@ const handleUpdateConfigs = async () => {
   const notifyKey = notifyActionPending('updateConfigs')
   try {
     await loadConfigs({ path: configPath.value, payload: configPayload.value }, forceUpdate.value)
-    reloadAll()
+    await reloadConfigs()
+    await reloadAll()
     modalValue.value = false
     showNotification({
       key: notifyKey,

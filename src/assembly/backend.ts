@@ -31,6 +31,7 @@ const soft = computed(() => {
     dashboardUpgrade: mihomoOrForkCore,
     reloadConfigs: mihomoOrForkCore,
     updateConfigs: mihomoOrForkCore,
+    updateSubscriptions: mihomoOrForkCore,
     updateGeoDatabase: mihomoOrForkCore,
     syncSettings: mihomoOrForkCore,
     independentLatency: mihomoOrForkCore,

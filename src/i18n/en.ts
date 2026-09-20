@@ -39,6 +39,7 @@ const en = {
   flushSmartWeightsSuccess: 'Smart weights flushed successfully',
   restartCoreSuccess: 'Core restarted successfully',
   reloadConfigsSuccess: 'Configs reloaded successfully',
+  updateSubscriptionsSuccess: 'Subscriptions updated successfully',
   updateGeoSuccess: 'Geo database updated successfully',
   actionRunning: '{action}...',
   chains: 'Chains',
@@ -122,6 +123,7 @@ const en = {
   reloadConfigs: 'Reload configs',
   updateConfigs: 'Update configs',
   updateConfigsSuccess: 'Configs updated successfully',
+  updateSubscriptions: 'Update subscriptions',
   configFilePath: 'Config file path',
   configFilePathPlaceholder: 'Absolute path, e.g. /etc/mihomo/config.yaml',
   configPayload: 'Config content',
@@ -161,8 +163,10 @@ const en = {
   dashboardSettingsJsonFile: 'JSON file',
   dashboardSettingsUrl: 'URL',
   autoSyncSettings: 'Auto-sync settings',
+  autoSyncAllBackends: 'Automatically sync to all backends',
   uploadSettings: 'Upload settings to core',
   syncSettings: 'Sync settings from core',
+  syncSettingsToAllBackends: 'Sync settings to all backends',
   deleteUploadedSettings: 'Delete uploaded settings from core',
   connectionSettings: 'Connection settings',
   proxySettings: 'Proxy settings',
@@ -333,6 +337,9 @@ const en = {
   uploadSettingsIconReflectListRemoved:
     'Custom icon data was too large and has been removed during upload. Please reduce it and try again.',
   syncSettingsSuccess: 'Settings synced successfully',
+  syncSettingsToAllBackendsSuccess: 'Settings synced to {success} backends',
+  syncSettingsToAllBackendsPartial:
+    'Settings synced to {success} backends; {failed} failed: {backends}',
   syncSettingsConfirm:
     'The backend has stored settings that will override the following local settings:\n\n{keys}\n\nDo you want to apply them?',
   importSettingsConfirm:

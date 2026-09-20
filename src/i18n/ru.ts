@@ -41,6 +41,7 @@ const ru: LANG_MESSAGE = {
   flushSmartWeightsSuccess: 'Smart веса успешно очищены',
   restartCoreSuccess: 'Ядро успешно перезапущено',
   reloadConfigsSuccess: 'Конфигурации успешно перезагружены',
+  updateSubscriptionsSuccess: 'Подписки успешно обновлены',
   updateGeoSuccess: 'Geo база данных успешно обновлена',
   actionRunning: '{action}: выполняется…',
   chains: 'Цепочки',
@@ -124,6 +125,7 @@ const ru: LANG_MESSAGE = {
   reloadConfigs: 'Перезагрузить конфигурации',
   updateConfigs: 'Обновить конфигурации',
   updateConfigsSuccess: 'Конфигурации успешно обновлены',
+  updateSubscriptions: 'Обновить подписки',
   configFilePath: 'Путь к файлу конфигурации',
   configFilePathPlaceholder: 'Абсолютный путь, например /etc/mihomo/config.yaml',
   configPayload: 'Содержимое конфигурации',
@@ -163,8 +165,10 @@ const ru: LANG_MESSAGE = {
   dashboardSettingsJsonFile: 'JSON файл',
   dashboardSettingsUrl: 'URL',
   autoSyncSettings: 'Автосинхронизация настроек',
+  autoSyncAllBackends: 'Автосинхронизация для всех бэкендов',
   uploadSettings: 'Загрузить настройки в ядро',
   syncSettings: 'Синхронизировать настройки из ядра',
+  syncSettingsToAllBackends: 'Синхронизировать настройки со всеми бэкендами',
   deleteUploadedSettings: 'Удалить загруженные настройки из ядра',
   connectionSettings: 'Настройки подключения',
   proxySettings: 'Настройки прокси',
@@ -336,6 +340,9 @@ const ru: LANG_MESSAGE = {
   uploadSettingsIconReflectListRemoved:
     'Данные пользовательских иконок слишком велики и были удалены при загрузке. Уменьшите их размер и попробуйте снова.',
   syncSettingsSuccess: 'Настройки успешно синхронизированы',
+  syncSettingsToAllBackendsSuccess: 'Настройки отправлены в бэкенды: {success}',
+  syncSettingsToAllBackendsPartial:
+    'Настройки отправлены в бэкенды: {success}; ошибок: {failed}: {backends}',
   syncSettingsConfirm:
     'В бэкенде сохранены настройки, которые перезапишут следующие локальные настройки:\n\n{keys}\n\nПрименить их?',
   importSettingsConfirm:

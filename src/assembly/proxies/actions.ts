@@ -111,6 +111,22 @@ export const handlerProxySelect = async (proxyGroupName: string, proxyName: stri
 
 export const updateProxyProvider = (name: string) => driver().proxies.updateProvider(name)
 
+export const updateAllProxyProviders = async () => {
+  const providers = proxyProviederList.value.filter(
+    (provider) => provider.vehicleType.toLowerCase() !== 'inline',
+  )
+  const results = await Promise.allSettled(
+    providers.map((provider) => updateProxyProvider(provider.name)),
+  )
+
+  await fetchProxies()
+
+  const failed = results.find((result) => result.status === 'rejected')
+  if (failed?.status === 'rejected') {
+    throw failed.reason
+  }
+}
+
 export const proxyProviderHealthCheck = (name: string) => driver().proxies.healthCheckProvider(name)
 
 export const fetchSmartWeights = () => driver().proxies.fetchSmartWeights()

@@ -5,7 +5,7 @@ import {
   hasSmartGroup,
   proxyGroupList,
   proxyProviederList,
-  updateProxyProvider,
+  updateAllProxyProviders,
 } from '@/assembly/proxies'
 import { useCtrlsBar } from '@/composables/use-ctrls-bar'
 import { PROXY_SORT_TYPE, PROXY_TAB_TYPE, ROUTE_NAME, SETTINGS_MENU_KEY } from '@/constant'
@@ -60,10 +60,7 @@ export default defineComponent({
       if (isUpgrading.value) return
       isUpgrading.value = true
       try {
-        await Promise.all(
-          proxyProviederList.value.map((provider) => updateProxyProvider(provider.name)),
-        )
-        await fetchProxies()
+        await updateAllProxyProviders()
         isUpgrading.value = false
       } catch {
         await fetchProxies()

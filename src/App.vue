@@ -12,11 +12,13 @@ import { useAppearanceVars } from './composables/use-appearance-vars'
 import { useOverscrollLock } from './composables/use-overscroll-lock'
 import { useThemeColor } from './composables/use-theme-color'
 import { showUpdateConfigModal, showUpgradeCoreModal } from '@/helper/backend-actions'
+import { syncSettingsToAllBackends } from './assembly/storage'
 import ConfirmDialogHost from './components/common/ConfirmDialogHost.vue'
 import { useKeyboard } from './composables/use-keyboard'
 import { EMOJIS, FONTS } from './constant'
 import {
   autoImportSettings,
+  autoSyncAllBackends,
   autoSyncSettings,
   importSettingsFromUrl,
   syncSettingsFromCore,
@@ -108,6 +110,14 @@ onMounted(async () => {
       await syncSettingsFromCore()
     } catch (e) {
       console.error('Failed to auto-sync settings on app load:', e)
+    }
+  }
+
+  if (autoSyncAllBackends.value) {
+    try {
+      await syncSettingsToAllBackends()
+    } catch (e) {
+      console.error('Failed to sync settings to all backends on app load:', e)
     }
   }
 })

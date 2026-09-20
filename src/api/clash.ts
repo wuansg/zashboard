@@ -206,7 +206,7 @@ export const toggleRuleDisabledAPI = (data: Record<number, boolean>) => {
 }
 
 export const reloadConfigsAPI = () => {
-  return axios.put('/configs?reload=true', { path: '', payload: '' })
+  return axios.put('/configs?force=true', { path: '', payload: '' })
 }
 
 export const updateConfigsAPI = (
@@ -244,6 +244,24 @@ export const getStorageAPI = () => {
 export const setStorageAPI = (value: Record<string, string>) => {
   return axios.put(`/storage/zashboard`, value)
 }
+
+const setStorageForBackend = async (backend: Backend, value: Record<string, string>) => {
+  const response = await fetch(`${getUrlFromBackend(backend)}/storage/zashboard`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${backend.password}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(value),
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+}
+
+export const setStorageForBackendAPI = (backend: Backend, value: Record<string, string>) =>
+  setStorageForBackend(backend, value)
 
 export const deleteStorageAPI = () => {
   return axios.delete(`/storage/zashboard`)

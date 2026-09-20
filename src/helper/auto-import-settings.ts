@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS_URL = './zashboard-settings.json'
 export const importSettingsUrl = useStorage(IMPORT_SETTINGS_URL_KEY, DEFAULT_SETTINGS_URL)
 export const autoImportSettings = useStorage('config/auto-import-settings', false)
 export const autoSyncSettings = useStorage('config/auto-sync-settings', false)
+export const autoSyncAllBackends = useStorage('config/auto-sync-all-backends', false)
 
 export const skipImportSettingsConfirm = useStorage('cache/skip-import-settings-confirm', false)
 export const skipSyncSettingsConfirm = useStorage('cache/skip-sync-settings-confirm', false)

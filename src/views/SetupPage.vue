@@ -56,12 +56,13 @@
 
 <script setup lang="ts">
 import { probeBackend } from '@/assembly/probe'
+import { syncSettingsToAllBackends } from '@/assembly/storage'
 import DashboardSettings from '@/components/common/DashboardSettings.vue'
 import ReachabilityIndicator from '@/components/common/ReachabilityIndicator.vue'
 import BackendForm from '@/components/settings/backend/BackendForm.vue'
 import LanguageSelect from '@/components/settings/general/LanguageSelect.vue'
 import { ROUTE_NAME } from '@/constant'
-import { syncSettingsFromCore } from '@/helper/auto-import-settings'
+import { autoSyncAllBackends, syncSettingsFromCore } from '@/helper/auto-import-settings'
 import { useBackendReachability } from '@/composables/use-backend-reachability'
 import { describeProbeFailure } from '@/helper/connectivity'
 import { showNotification } from '@/helper/notification'
@@ -95,6 +96,14 @@ const finishLogin = async () => {
     await syncSettingsFromCore()
   } catch (error) {
     console.error('Failed to sync settings after login:', error)
+  }
+
+  if (autoSyncAllBackends.value) {
+    try {
+      await syncSettingsToAllBackends()
+    } catch (error) {
+      console.error('Failed to sync settings to all backends after login:', error)
+    }
   }
 }
 

@@ -21,72 +21,101 @@
         {{ $t('resetSettings') }}
       </button>
     </template>
-    <template v-if="showSyncSettings">
+    <template v-if="showSyncSettings || showSyncAllSettings">
       <div class="settings-section-label">
         {{ $t('dashboardSettingsCore') }}
       </div>
-      <div class="settings-grid">
-        <div class="setting-item">
-          <div class="setting-item-label">
-            {{ $t('uploadSettings') }}
+      <template v-if="showSyncSettings">
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-item-label">
+              {{ $t('uploadSettings') }}
+            </div>
+            <button
+              :class="twMerge('btn btn-sm', isStorageSubmitting ? 'btn-disabled' : '')"
+              :disabled="isStorageSubmitting"
+              @click="handlerClickUploadSettings"
+            >
+              <ArrowUpTrayIcon class="h-4 w-4" />
+            </button>
           </div>
-          <button
-            :class="twMerge('btn btn-sm', isStorageSubmitting ? 'btn-disabled' : '')"
-            :disabled="isStorageSubmitting"
-            @click="handlerClickUploadSettings"
+          <div class="setting-item">
+            <div class="setting-item-label">
+              {{ $t('syncSettings') }}
+            </div>
+            <button
+              :class="twMerge('btn btn-sm', isStorageSubmitting ? 'btn-disabled' : '')"
+              :disabled="isStorageSubmitting"
+              @click="handlerClickSyncSettings"
+            >
+              <ArrowPathIcon class="h-4 w-4" />
+            </button>
+          </div>
+          <div class="setting-item">
+            <div class="setting-item-label">
+              {{ $t('deleteUploadedSettings') }}
+            </div>
+            <button
+              :class="
+                twMerge('btn btn-sm btn-error btn-soft', isStorageSubmitting ? 'btn-disabled' : '')
+              "
+              :disabled="isStorageSubmitting"
+              @click="handlerClickDeleteUploadedSettings"
+            >
+              <TrashIcon class="h-4 w-4" />
+            </button>
+          </div>
+          <div class="setting-item">
+            <div class="setting-item-label">
+              {{ $t('autoSyncSettings') }}
+            </div>
+            <input
+              v-model="autoSyncSettings"
+              type="checkbox"
+              class="toggle"
+            />
+          </div>
+          <div
+            v-if="autoSyncSettings || skipSyncSettingsConfirm"
+            class="setting-item"
           >
-            <ArrowUpTrayIcon class="h-4 w-4" />
-          </button>
+            <div class="setting-item-label">
+              {{ $t('confirmBeforeOverride') }}
+            </div>
+            <input
+              v-model="skipSyncSettingsConfirm"
+              type="checkbox"
+              class="toggle"
+              :true-value="false"
+              :false-value="true"
+            />
+          </div>
         </div>
+      </template>
+      <div
+        v-if="showSyncAllSettings"
+        class="settings-grid"
+      >
         <div class="setting-item">
           <div class="setting-item-label">
-            {{ $t('syncSettings') }}
+            {{ $t('syncSettingsToAllBackends') }}
           </div>
           <button
             :class="twMerge('btn btn-sm', isStorageSubmitting ? 'btn-disabled' : '')"
             :disabled="isStorageSubmitting"
-            @click="handlerClickSyncSettings"
+            @click="handlerClickSyncAllSettings"
           >
             <ArrowPathIcon class="h-4 w-4" />
           </button>
         </div>
         <div class="setting-item">
           <div class="setting-item-label">
-            {{ $t('deleteUploadedSettings') }}
-          </div>
-          <button
-            :class="
-              twMerge('btn btn-sm btn-error btn-soft', isStorageSubmitting ? 'btn-disabled' : '')
-            "
-            :disabled="isStorageSubmitting"
-            @click="handlerClickDeleteUploadedSettings"
-          >
-            <TrashIcon class="h-4 w-4" />
-          </button>
-        </div>
-        <div class="setting-item">
-          <div class="setting-item-label">
-            {{ $t('autoSyncSettings') }}
+            {{ $t('autoSyncAllBackends') }}
           </div>
           <input
-            v-model="autoSyncSettings"
+            v-model="autoSyncAllBackends"
             type="checkbox"
             class="toggle"
-          />
-        </div>
-        <div
-          v-if="autoSyncSettings || skipSyncSettingsConfirm"
-          class="setting-item"
-        >
-          <div class="setting-item-label">
-            {{ $t('confirmBeforeOverride') }}
-          </div>
-          <input
-            v-model="skipSyncSettingsConfirm"
-            type="checkbox"
-            class="toggle"
-            :true-value="false"
-            :false-value="true"
           />
         </div>
       </div>
@@ -204,10 +233,15 @@
 </template>
 
 <script setup lang="ts">
-import { deleteSyncedSettings, setSyncedSettings } from '@/assembly/storage'
+import {
+  deleteSyncedSettings,
+  setSyncedSettings,
+  setSyncedSettingsToAllBackends,
+} from '@/assembly/storage'
 import { can } from '@/assembly/backend'
 import {
   autoImportSettings,
+  autoSyncAllBackends,
   autoSyncSettings,
   DEFAULT_SETTINGS_URL,
   importSettingsFromUrl,
@@ -223,10 +257,12 @@ import { useTooltip } from '@/composables/use-tooltip'
 import {
   applyDashboardSettingsToStorage,
   exportSettings,
+  getLabelFromBackend,
   getDashboardSettingsFromStorage,
   resetSettings,
 } from '@/helper/utils'
 import { customBackgroundURL } from '@/store/settings'
+import { backendList } from '@/store/setup'
 import {
   ArrowDownCircleIcon,
   ArrowDownTrayIcon,
@@ -254,6 +290,7 @@ const inputRef = ref<HTMLInputElement>()
 const dashboardSettingsDialogShow = ref(false)
 const isStorageSubmitting = ref(false)
 const showSyncSettings = computed(() => can('syncSettings'))
+const showSyncAllSettings = computed(() => backendList.value.length > 1)
 
 const { showTip } = useTooltip()
 const { t } = useI18n()
@@ -287,6 +324,43 @@ const importSettingsFromUrlHandler = async () => {
   await importSettingsFromUrl({ force: true })
 }
 
+const prepareSettingsForSync = () => {
+  const settings = getDashboardSettingsFromStorage()
+  const iconLength = JSON.stringify(settings['config/icon-reflect-list'] || []).length
+  const isIconReflectListRemoved = iconLength > 800 * 1024
+
+  if (customBackgroundURL.value.includes(LOCAL_IMAGE)) {
+    delete settings['config/custom-background-image']
+  }
+
+  if (isIconReflectListRemoved) {
+    delete settings['config/icon-reflect-list']
+  }
+
+  return { settings, isIconReflectListRemoved }
+}
+
+const notifyAllBackendsSyncResult = (
+  results: Awaited<ReturnType<typeof setSyncedSettingsToAllBackends>>,
+  notifyKey: string,
+) => {
+  const failed = results.filter((result) => !result.ok)
+  const successful = results.length - failed.length
+
+  showNotification({
+    key: notifyKey,
+    content: failed.length
+      ? 'syncSettingsToAllBackendsPartial'
+      : 'syncSettingsToAllBackendsSuccess',
+    params: {
+      success: String(successful),
+      failed: String(failed.length),
+      backends: failed.map(({ backend }) => getLabelFromBackend(backend)).join(', '),
+    },
+    type: failed.length ? 'alert-warning' : 'alert-success',
+  })
+}
+
 const handlerClickUploadSettings = async () => {
   if (isStorageSubmitting.value) return
 
@@ -294,17 +368,7 @@ const handlerClickUploadSettings = async () => {
   const notifyKey = notifyActionPending('uploadSettings')
   try {
     dashboardSettingsDialogShow.value = false
-    const settings = getDashboardSettingsFromStorage()
-    const iconLength = JSON.stringify(settings['config/icon-reflect-list'] || []).length
-    const isIconReflectListRemoved = iconLength > 800 * 1024
-
-    if (customBackgroundURL.value.includes(LOCAL_IMAGE)) {
-      delete settings['config/custom-background-image']
-    }
-
-    if (isIconReflectListRemoved) {
-      delete settings['config/icon-reflect-list']
-    }
+    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
 
     await setSyncedSettings(settings)
     showNotification({
@@ -312,6 +376,29 @@ const handlerClickUploadSettings = async () => {
       content: 'uploadSettingsSuccess',
       type: 'alert-success',
     })
+    if (isIconReflectListRemoved) {
+      showNotification({
+        content: 'uploadSettingsIconReflectListRemoved',
+        type: 'alert-warning',
+      })
+    }
+  } catch (e) {
+    notifyRequestError(e, notifyKey)
+  } finally {
+    isStorageSubmitting.value = false
+  }
+}
+
+const handlerClickSyncAllSettings = async () => {
+  if (isStorageSubmitting.value) return
+
+  isStorageSubmitting.value = true
+  const notifyKey = notifyActionPending('syncSettingsToAllBackends')
+  try {
+    dashboardSettingsDialogShow.value = false
+    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
+    const results = await setSyncedSettingsToAllBackends(settings)
+    notifyAllBackendsSyncResult(results, notifyKey)
     if (isIconReflectListRemoved) {
       showNotification({
         content: 'uploadSettingsIconReflectListRemoved',
@@ -374,6 +461,29 @@ watch(autoSyncSettings, async (value, oldValue) => {
     await syncSettingsFromCore()
   } catch (e) {
     notifyRequestError(e)
+  } finally {
+    isStorageSubmitting.value = false
+  }
+})
+
+watch(autoSyncAllBackends, async (value, oldValue) => {
+  if (!value || oldValue || isStorageSubmitting.value) return
+
+  isStorageSubmitting.value = true
+  const notifyKey = notifyActionPending('syncSettingsToAllBackends')
+  try {
+    dashboardSettingsDialogShow.value = false
+    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
+    const results = await setSyncedSettingsToAllBackends(settings)
+    notifyAllBackendsSyncResult(results, notifyKey)
+    if (isIconReflectListRemoved) {
+      showNotification({
+        content: 'uploadSettingsIconReflectListRemoved',
+        type: 'alert-warning',
+      })
+    }
+  } catch (e) {
+    notifyRequestError(e, notifyKey)
   } finally {
     isStorageSubmitting.value = false
   }

@@ -6,7 +6,12 @@ import {
   reloadConfigs,
   updateGeoData,
 } from '@/assembly/config'
-import { fetchProxies, flushSmartGroupWeights, hasSmartGroup } from '@/assembly/proxies'
+import {
+  fetchProxies,
+  flushSmartGroupWeights,
+  hasSmartGroup,
+  updateAllProxyProviders,
+} from '@/assembly/proxies'
 import { fetchRules } from '@/assembly/rules'
 import { restartCore } from '@/assembly/version'
 import { BACKEND_ITEM_KEYS } from '@/config/settings-items'
@@ -40,14 +45,11 @@ export type BackendAction = {
 export const showUpgradeCoreModal = ref(false)
 export const showUpdateConfigModal = ref(false)
 
-const reloadAll = () => {
-  fetchConfigs()
-  fetchRules()
-  fetchProxies()
-}
+const reloadAll = () => Promise.all([fetchConfigs(), fetchRules(), fetchProxies()])
 
 const isCoreRestarting = ref(false)
 const isConfigReloading = ref(false)
+const isSubscriptionsUpdating = ref(false)
 const isGeoUpdating = ref(false)
 const isDNSCacheFlushing = ref(false)
 const isFakeIPFlushing = ref(false)
@@ -58,7 +60,7 @@ const runOnce = async (
   running: Ref<boolean>,
   request: () => Promise<unknown>,
   successMessage: string,
-  afterSuccess?: () => void,
+  afterSuccess?: () => void | Promise<unknown>,
   confirm?: { title: string; message: string },
 ) => {
   if (running.value) return
@@ -73,7 +75,7 @@ const runOnce = async (
   const notifyKey = notifyActionPending(label)
   try {
     await request()
-    afterSuccess?.()
+    await afterSuccess?.()
     showNotification({
       key: notifyKey,
       content: successMessage,
@@ -115,7 +117,9 @@ export const backendActions = computed<BackendAction[]>(() => {
           isCoreRestarting,
           restartCore,
           'restartCoreSuccess',
-          () => setTimeout(reloadAll, 500),
+          () => {
+            setTimeout(() => void reloadAll(), 500)
+          },
           { title: 'restartCore', message: 'restartCoreConfirm' },
         ),
     })
@@ -147,6 +151,23 @@ export const backendActions = computed<BackendAction[]>(() => {
       running: false,
       opensModal: true,
       run: () => (showUpdateConfigModal.value = true),
+    })
+  }
+
+  if (can('updateSubscriptions')) {
+    actions.push({
+      key: k.updateSubscriptions,
+      label: 'updateSubscriptions',
+      icon: ArrowDownTrayIcon,
+      running: isSubscriptionsUpdating.value,
+      opensModal: false,
+      run: () =>
+        runOnce(
+          'updateSubscriptions',
+          isSubscriptionsUpdating,
+          updateAllProxyProviders,
+          'updateSubscriptionsSuccess',
+        ),
     })
   }
 
