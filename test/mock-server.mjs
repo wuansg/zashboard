@@ -136,9 +136,16 @@ export const createMockServer = async ({
   /*
    * 两个可在运行时改的开关,verify 会用到:
    * - stableLatency:关掉「每次拉 /proxies 都换一批延迟」,这样测速时新写进去的值才好辨认;
-   * - latencyDelayMs:让单节点测速慢一点,才采得到「乐观写入」的中间态。
+   * - latencyDelayMs:让单节点测速慢一点,才采得到「乐观写入」的中间态;
+   * - latencyError:让测速端点返回一个带错误信息的失败响应。
    */
-  const control = { stableLatency: false, latencyDelayMs: 0, latencyValue: 999 }
+  const control = {
+    stableLatency: false,
+    latencyDelayMs: 0,
+    latencyValue: 999,
+    latencyError: '',
+    latencyErrorStatus: 504,
+  }
   let fetchCount = 0
 
   const configs = {
@@ -165,8 +172,8 @@ export const createMockServer = async ({
     }
   }
 
-  const json = (res, data) => {
-    res.writeHead(200, { 'content-type': 'application/json', ...CORS })
+  const json = (res, data, status = 200) => {
+    res.writeHead(status, { 'content-type': 'application/json', ...CORS })
     res.end(JSON.stringify(data))
   }
 
@@ -235,7 +242,13 @@ export const createMockServer = async ({
 
     // 测速类端点(节点 / 组 / provider healthcheck)
     if (pathname.endsWith('/delay') || pathname.includes('/healthcheck')) {
-      return setTimeout(() => json(res, { delay: control.latencyValue }), control.latencyDelayMs)
+      return setTimeout(() => {
+        if (control.latencyError) {
+          return json(res, { message: control.latencyError }, control.latencyErrorStatus)
+        }
+
+        return json(res, { delay: control.latencyValue })
+      }, control.latencyDelayMs)
     }
 
     if (pathname.startsWith('/proxies/') && req.method === 'PUT') {

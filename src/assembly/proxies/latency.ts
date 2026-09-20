@@ -2,7 +2,7 @@ import { driver } from '@/assembly/driver'
 import { IPV6_TEST_URL, NOT_CONNECTED, PROXY_TYPE, SPEEDTEST_MODE } from '@/constant'
 import { isProxyGroup } from '@/helper'
 import { showNotification } from '@/helper/notification'
-import { notifyRequestError } from '@/helper/request-error'
+import { getRequestErrorMessage, notifyRequestError } from '@/helper/request-error'
 import { i18n } from '@/i18n'
 import { independentLatencyTest, IPv6test, speedtestMode, speedtestTimeout } from '@/store/settings'
 import pLimit from 'p-limit'
@@ -69,11 +69,13 @@ export const proxyLatencyTest = async (
 ) => {
   let delay = NOT_CONNECTED
   let failed = false
+  let errorMessage = ''
 
   try {
     delay = await latencyTestForSingle(proxyName, url, timeout)
-  } catch {
+  } catch (error) {
     failed = true
+    errorMessage = getRequestErrorMessage(error)
   } finally {
     await fetchProxies()
   }
@@ -87,6 +89,7 @@ export const proxyLatencyTest = async (
       content: 'testFailedTip',
       params: {
         name: getNameForNotification(proxyName, url),
+        error: errorMessage,
       },
       type: 'alert-error',
     })

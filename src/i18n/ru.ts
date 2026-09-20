@@ -262,7 +262,7 @@ const ru: LANG_MESSAGE = {
   testFailed: 'Тест задержки таймаут',
   testFinishedTip: '{name}\n{number}/{total} Тест завершен',
   testFinishedResultTip: '{name}\nТест завершен: {success} Успешно, {failed} Таймаут',
-  testFailedTip: '{name}\nТест задержки таймаут',
+  testFailedTip: '{name}\nТест задержки не удался: {error}',
   updateFinishedTip: '{number} Обновление завершено',
 
   independentLatencyTest: 'Независимый тест задержки',

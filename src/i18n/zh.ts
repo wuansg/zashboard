@@ -256,7 +256,7 @@ const zh: LANG_MESSAGE = {
   testFailed: '测速超时',
   testFinishedTip: '{name}\n{number}/{total} 测试完成',
   testFinishedResultTip: '{name}\n测试完成: {success} 成功，{failed} 超时',
-  testFailedTip: '{name}\n测速超时',
+  testFailedTip: '{name}\n测速失败: {error}',
   updateFinishedTip: '{number} 更新完成',
 
   independentLatencyTest: '独立延迟测试',

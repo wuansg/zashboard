@@ -259,7 +259,7 @@ const en = {
   testFailed: 'Test failed',
   testFinishedTip: '{name}\n{number}/{total} tests completed',
   testFinishedResultTip: '{name}\nTest completed: {success} succeeded, {failed} timed out',
-  testFailedTip: '{name}\nTest failed',
+  testFailedTip: '{name}\nTest failed: {error}',
   updateFinishedTip: '{number} update(s) finished',
 
   independentLatencyTest: 'Independent latency test',

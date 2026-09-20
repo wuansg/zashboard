@@ -435,6 +435,26 @@ try {
     `节点 ${standardNodeBefore} → ${standardNodeAfterFirstTest} → ${await standardNodeName()}，测速 ${await standardNodeLatency()}，记录 ${standardHistoryCount} 条`,
   )
 
+  await harness.setMockControl({ latencyError: 'context deadline exceeded' })
+  await standardPage.clickSelector(standardNodeLatencySelector)
+  const detailedLatencyError = await waitFor(
+    async () =>
+      (
+        await standardPage.evaluate(
+          `document.querySelector('[role="alert"] .app-toast__content')?.textContent ?? ''`,
+        )
+      ).includes('context deadline exceeded'),
+    { timeout: 5000, interval: 100 },
+  )
+
+  check(
+    '单节点测速失败会显示后端错误信息',
+    detailedLatencyError !== null,
+    `提示 ${await standardPage.evaluate(`document.querySelector('[role="alert"] .app-toast__content')?.textContent?.trim() ?? ''`)}`,
+  )
+
+  await harness.setMockControl({ latencyError: '' })
+
   await standardPage.close()
 
   section('自动滚动规则')
