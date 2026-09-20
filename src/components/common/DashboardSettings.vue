@@ -233,11 +233,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  deleteSyncedSettings,
-  setSyncedSettings,
-  setSyncedSettingsToAllBackends,
-} from '@/assembly/storage'
+import { deleteSyncedSettings, setSyncedSettings } from '@/assembly/storage'
 import { can } from '@/assembly/backend'
 import {
   autoImportSettings,
@@ -250,18 +246,14 @@ import {
   skipSyncSettingsConfirm,
   syncSettingsFromCore,
 } from '@/helper/auto-import-settings'
-import { LOCAL_IMAGE } from '@/helper/indexeddb'
 import { dismissNotification, notifyActionPending, showNotification } from '@/helper/notification'
 import { notifyRequestError } from '@/helper/request-error'
-import { useTooltip } from '@/composables/use-tooltip'
 import {
-  applyDashboardSettingsToStorage,
-  exportSettings,
-  getLabelFromBackend,
-  getDashboardSettingsFromStorage,
-  resetSettings,
-} from '@/helper/utils'
-import { customBackgroundURL } from '@/store/settings'
+  getSettingsForSync,
+  syncSettingsToAllBackendsWithNotification,
+} from '@/helper/sync-settings'
+import { useTooltip } from '@/composables/use-tooltip'
+import { applyDashboardSettingsToStorage, exportSettings, resetSettings } from '@/helper/utils'
 import { backendList } from '@/store/setup'
 import {
   ArrowDownCircleIcon,
@@ -290,7 +282,7 @@ const inputRef = ref<HTMLInputElement>()
 const dashboardSettingsDialogShow = ref(false)
 const isStorageSubmitting = ref(false)
 const showSyncSettings = computed(() => can('syncSettings'))
-const showSyncAllSettings = computed(() => backendList.value.length > 1)
+const showSyncAllSettings = computed(() => backendList.value.length > 0)
 
 const { showTip } = useTooltip()
 const { t } = useI18n()
@@ -324,43 +316,6 @@ const importSettingsFromUrlHandler = async () => {
   await importSettingsFromUrl({ force: true })
 }
 
-const prepareSettingsForSync = () => {
-  const settings = getDashboardSettingsFromStorage()
-  const iconLength = JSON.stringify(settings['config/icon-reflect-list'] || []).length
-  const isIconReflectListRemoved = iconLength > 800 * 1024
-
-  if (customBackgroundURL.value.includes(LOCAL_IMAGE)) {
-    delete settings['config/custom-background-image']
-  }
-
-  if (isIconReflectListRemoved) {
-    delete settings['config/icon-reflect-list']
-  }
-
-  return { settings, isIconReflectListRemoved }
-}
-
-const notifyAllBackendsSyncResult = (
-  results: Awaited<ReturnType<typeof setSyncedSettingsToAllBackends>>,
-  notifyKey: string,
-) => {
-  const failed = results.filter((result) => !result.ok)
-  const successful = results.length - failed.length
-
-  showNotification({
-    key: notifyKey,
-    content: failed.length
-      ? 'syncSettingsToAllBackendsPartial'
-      : 'syncSettingsToAllBackendsSuccess',
-    params: {
-      success: String(successful),
-      failed: String(failed.length),
-      backends: failed.map(({ backend }) => getLabelFromBackend(backend)).join(', '),
-    },
-    type: failed.length ? 'alert-warning' : 'alert-success',
-  })
-}
-
 const handlerClickUploadSettings = async () => {
   if (isStorageSubmitting.value) return
 
@@ -368,7 +323,7 @@ const handlerClickUploadSettings = async () => {
   const notifyKey = notifyActionPending('uploadSettings')
   try {
     dashboardSettingsDialogShow.value = false
-    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
+    const { settings, isIconReflectListRemoved } = getSettingsForSync()
 
     await setSyncedSettings(settings)
     showNotification({
@@ -396,15 +351,7 @@ const handlerClickSyncAllSettings = async () => {
   const notifyKey = notifyActionPending('syncSettingsToAllBackends')
   try {
     dashboardSettingsDialogShow.value = false
-    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
-    const results = await setSyncedSettingsToAllBackends(settings)
-    notifyAllBackendsSyncResult(results, notifyKey)
-    if (isIconReflectListRemoved) {
-      showNotification({
-        content: 'uploadSettingsIconReflectListRemoved',
-        type: 'alert-warning',
-      })
-    }
+    await syncSettingsToAllBackendsWithNotification(notifyKey)
   } catch (e) {
     notifyRequestError(e, notifyKey)
   } finally {
@@ -473,15 +420,7 @@ watch(autoSyncAllBackends, async (value, oldValue) => {
   const notifyKey = notifyActionPending('syncSettingsToAllBackends')
   try {
     dashboardSettingsDialogShow.value = false
-    const { settings, isIconReflectListRemoved } = prepareSettingsForSync()
-    const results = await setSyncedSettingsToAllBackends(settings)
-    notifyAllBackendsSyncResult(results, notifyKey)
-    if (isIconReflectListRemoved) {
-      showNotification({
-        content: 'uploadSettingsIconReflectListRemoved',
-        type: 'alert-warning',
-      })
-    }
+    await syncSettingsToAllBackendsWithNotification(notifyKey)
   } catch (e) {
     notifyRequestError(e, notifyKey)
   } finally {

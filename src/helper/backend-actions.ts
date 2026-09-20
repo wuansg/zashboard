@@ -19,8 +19,12 @@ import { showConfirmDialog } from '@/helper/confirm-dialog'
 import { notifyActionPending, showNotification } from '@/helper/notification'
 import { notifyRequestError } from '@/helper/request-error'
 import { isSettingHidden } from '@/helper/settings'
+import {
+  notifySyncSettingsError,
+  syncSettingsToAllBackendsWithNotification,
+} from '@/helper/sync-settings'
 import { i18n } from '@/i18n'
-import { activeBackend } from '@/store/setup'
+import { activeBackend, backendList } from '@/store/setup'
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -50,6 +54,7 @@ const reloadAll = () => Promise.all([fetchConfigs(), fetchRules(), fetchProxies(
 const isCoreRestarting = ref(false)
 const isConfigReloading = ref(false)
 const isSubscriptionsUpdating = ref(false)
+const isAllSettingsSyncing = ref(false)
 const isGeoUpdating = ref(false)
 const isDNSCacheFlushing = ref(false)
 const isFakeIPFlushing = ref(false)
@@ -85,6 +90,20 @@ const runOnce = async (
     notifyRequestError(e, notifyKey)
   } finally {
     running.value = false
+  }
+}
+
+const runSyncSettingsToAllBackends = async () => {
+  if (isAllSettingsSyncing.value) return
+
+  isAllSettingsSyncing.value = true
+  const notifyKey = notifyActionPending('syncSettingsToAllBackends')
+  try {
+    await syncSettingsToAllBackendsWithNotification(notifyKey)
+  } catch (e) {
+    notifySyncSettingsError(e, notifyKey)
+  } finally {
+    isAllSettingsSyncing.value = false
   }
 }
 
@@ -168,6 +187,17 @@ export const backendActions = computed<BackendAction[]>(() => {
           updateAllProxyProviders,
           'updateSubscriptionsSuccess',
         ),
+    })
+  }
+
+  if (backendList.value.length > 0) {
+    actions.push({
+      key: k.syncSettingsToAllBackends,
+      label: 'syncSettingsToAllBackends',
+      icon: ArrowPathIcon,
+      running: isAllSettingsSyncing.value,
+      opensModal: false,
+      run: runSyncSettingsToAllBackends,
     })
   }
 
