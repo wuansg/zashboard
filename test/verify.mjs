@@ -314,9 +314,9 @@ try {
       `(document.querySelector('[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag')?.innerText ?? '').trim()`,
     )
 
-  await independentPage.clickSelector(
-    `[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag`,
-  )
+  const singleNodeLatencySelector = `[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag`
+
+  await independentPage.clickSelector(singleNodeLatencySelector)
   const singleNodeTested = await waitFor(async () => (await singleNodeLatency()) === '999', {
     timeout: 20000,
     interval: 200,
@@ -326,6 +326,43 @@ try {
     '独立延迟模式下点击组内单节点会发起测速',
     singleNodeTested !== null,
     `节点延迟: ${await singleNodeLatency()}`,
+  )
+
+  await harness.setMockControl({ latencyValue: 888 })
+  await independentPage.clickSelector(singleNodeLatencySelector)
+  const repeatedSingleNodeTested = await waitFor(
+    async () => (await singleNodeLatency()) === '888',
+    { timeout: 20000, interval: 200 },
+  )
+
+  await independentPage.call('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: 1,
+    y: 1,
+  })
+  await sleep(200)
+  const latencyBox = await independentPage.boxOf(singleNodeLatencySelector)
+  await independentPage.call('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: latencyBox.x,
+    y: latencyBox.y,
+  })
+
+  const historyReady = await waitFor(
+    async () =>
+      (await independentPage.evaluate(
+        `document.querySelector('.tippy-content > div')?.children.length ?? 0`,
+      )) >= 2,
+    { timeout: 5000, interval: 100 },
+  )
+  const historyCount = await independentPage.evaluate(
+    `document.querySelector('.tippy-content > div')?.children.length ?? 0`,
+  )
+
+  check(
+    '重复单节点测速会保留延迟记录',
+    repeatedSingleNodeTested !== null && historyReady !== null && historyCount >= 2,
+    `测速 ${await singleNodeLatency()}，记录 ${historyCount} 条`,
   )
 
   await independentPage.close()

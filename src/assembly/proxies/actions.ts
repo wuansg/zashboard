@@ -17,6 +17,65 @@ const getIPv6FromExtra = (proxy: Proxy) => {
 
 let fetchTime = 0
 
+const mergeLatencyHistory = (
+  previousHistory: Proxy['history'],
+  currentHistory: Proxy['history'],
+) => {
+  const seen = new Set<string>()
+
+  return [...previousHistory, ...currentHistory].filter((item) => {
+    const key = `${item.time}\u0000${item.delay}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+const preserveLatencyHistory = (
+  previousProxyMap: Record<string, Proxy>,
+  nextProxyMap: Record<string, Proxy>,
+) => {
+  for (const [name, proxy] of Object.entries(nextProxyMap)) {
+    const previousProxy = previousProxyMap[name]
+
+    if (previousProxy?.history?.length) {
+      proxy.history = mergeLatencyHistory(previousProxy.history, proxy.history ?? [])
+    }
+
+    const previousExtra = previousProxy?.extra
+    if (!previousExtra) continue
+
+    const extra = { ...(proxy.extra ?? {}) }
+
+    for (const [testUrl, previousResult] of Object.entries(previousExtra)) {
+      const currentResult = extra[testUrl]
+
+      if (!currentResult) {
+        extra[testUrl] = {
+          ...previousResult,
+          history: [...previousResult.history],
+        }
+        continue
+      }
+
+      const seen = new Set<string>()
+      const history = [...previousResult.history, ...currentResult.history].filter((item) => {
+        const key = `${item.time}\u0000${item.delay}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+
+      extra[testUrl] = {
+        ...currentResult,
+        history,
+      }
+    }
+
+    proxy.extra = extra
+  }
+}
+
 export const fetchProxies = async () => {
   const nowTime = Date.now()
 
@@ -38,10 +97,13 @@ export const fetchProxies = async () => {
     }
   }
 
-  proxyMap.value = {
+  const nextProxyMap = {
     ...allProviderProxies,
     ...proxies,
   }
+
+  preserveLatencyHistory(proxyMap.value, nextProxyMap)
+  proxyMap.value = nextProxyMap
   proxyGroupList.value = Object.values(proxies)
     .filter((proxy) => proxy.all?.length && proxy.name !== GLOBAL)
     .sort((prev, next) => {
