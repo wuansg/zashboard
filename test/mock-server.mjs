@@ -32,6 +32,8 @@ const buildFixture = ({ groups, nodes, connections, providers: providerCount }) 
       alive: i % 7 !== 0,
       // 每 7 个留一个不可用的,好覆盖「隐藏不可用节点」这类分支
       history: [{ time: now, delay: i % 7 === 0 ? 0 : 50 + (i % 400) }],
+      // 独立延迟测试从组 URL 对应的 extra 历史桶读取结果。
+      extra: {},
       'provider-name': `provider-${i % providerCount}`,
     }
   })

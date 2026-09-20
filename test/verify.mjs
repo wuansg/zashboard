@@ -294,6 +294,42 @@ try {
 
   await corePage.close()
 
+  section('组内单节点测速')
+  await harness.setMockControl({ stableLatency: true, latencyDelayMs: 0, latencyValue: 999 })
+  const independentPage = await harness.openProxiesPage({
+    settings: {
+      'config/independent-latency-test': true,
+      'cache/collapse-group-map': '{}',
+    },
+  })
+  await independentPage.waitForCards(1)
+  await independentPage.clickSelector(
+    `[data-group-name="${SELECTOR_GROUP}"] .collapse-motion-header`,
+    { dx: 60, dy: 12 },
+  )
+  await sleep(1000)
+
+  const singleNodeLatency = () =>
+    independentPage.evaluate(
+      `(document.querySelector('[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag')?.innerText ?? '').trim()`,
+    )
+
+  await independentPage.clickSelector(
+    `[data-group-name="${SELECTOR_GROUP}"] .proxies-scrollable-parent .latency-tag`,
+  )
+  const singleNodeTested = await waitFor(async () => (await singleNodeLatency()) === '999', {
+    timeout: 20000,
+    interval: 200,
+  })
+
+  check(
+    '独立延迟模式下点击组内单节点会发起测速',
+    singleNodeTested !== null,
+    `节点延迟: ${await singleNodeLatency()}`,
+  )
+
+  await independentPage.close()
+
   section('自动滚动规则')
 
   // 让激活节点落在列表末尾,并给各节点恢复递增延迟；窄屏下展开时必须瞬时定位到底部。
@@ -308,6 +344,7 @@ try {
     settings: {
       'config/two-columns': 'false',
       'config/proxy-sort-type': 'latencyasc',
+      'config/independent-latency-test': false,
       'cache/collapse-group-map': '{}',
     },
   })

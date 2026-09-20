@@ -1,3 +1,4 @@
+import { can } from '@/assembly/backend'
 import { driver } from '@/assembly/driver'
 import { IPV6_TEST_URL, NOT_CONNECTED, PROXY_TYPE, SPEEDTEST_MODE } from '@/constant'
 import { isProxyGroup } from '@/helper'
@@ -52,26 +53,6 @@ const getNameForNotification = (name: string, url: string) => {
   return name
 }
 
-export const proxyLatencyTest = async (
-  proxyName: string,
-  url = speedtestUrlWithDefault.value,
-  timeout = speedtestTimeout.value,
-) => {
-  try {
-    await latencyTestForSingle(proxyName, url, timeout)
-  } catch {
-    showNotification({
-      content: 'testFailedTip',
-      params: {
-        name: getNameForNotification(proxyName, url),
-      },
-      type: 'alert-error',
-    })
-  } finally {
-    await fetchProxies()
-  }
-}
-
 const setHistory = (proxyName: string, delay: number, groupName?: string) => {
   const history = getHistoryByName(proxyName, groupName)
 
@@ -79,6 +60,38 @@ const setHistory = (proxyName: string, delay: number, groupName?: string) => {
     time: new Date().toISOString(),
     delay,
   })
+}
+
+export const proxyLatencyTest = async (
+  proxyName: string,
+  url = speedtestUrlWithDefault.value,
+  timeout = speedtestTimeout.value,
+  groupName?: string,
+) => {
+  let delay = NOT_CONNECTED
+  let failed = false
+
+  try {
+    delay = await latencyTestForSingle(proxyName, url, timeout)
+  } catch {
+    failed = true
+  } finally {
+    await fetchProxies()
+  }
+
+  if (groupName && independentLatencyTest.value && can('independentLatency')) {
+    setHistory(proxyName, delay, groupName)
+  }
+
+  if (failed) {
+    showNotification({
+      content: 'testFailedTip',
+      params: {
+        name: getNameForNotification(proxyName, url),
+      },
+      type: 'alert-error',
+    })
+  }
 }
 
 const TIP_KEY = 'testLatencyOneByOneWithTip'
